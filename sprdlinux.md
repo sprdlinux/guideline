@@ -91,8 +91,11 @@ Sprdlinux社区版约定如下：
 >- dt文件: 公司名 + [ 平台名 | 芯片名 ] + [ 板名 ].[ dtsi | dts ]
  
  例如：
- ![dt files relations](images/dt-relations.png)
+ ![dt-files- relationship](https://raw.githubusercontent.com/sprdlinux/guideline/master/images/dt-relations.png)
 
+**sprd-shark.dtsi**：描述shark平台所共有的硬件资源，如cpu, interrupt-controller, uarts, etc.
+**sprd-sc7730.dtsi** ：首先包含sprd-shark.dtsi中的内容，描述(override) sc7730这款芯片的差异，比如cp的配置资源等。
+**sprd-sp7730gga-openphone.dts**：代表基于上述芯片的最终手机成品，在包含上述2个文件的基础上，补充描述如内存配置，pinctrl mux，端口使能，以及在板外设等。 
 
 ----
 > Created by Orson Zhai (orson.zhai@gmail.com)
