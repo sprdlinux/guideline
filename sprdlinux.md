@@ -19,7 +19,7 @@
 kernel累积了千万行代码，万人共同开发。目录名、文件名、函数名、变量名、宏名，乃至作者名，如果各行其事，恐怕早就一团乱麻了。
 Sprdlinux社区版约定如下：
 
-#### 公司名 (Manufacturer Name)
+### 公司名 (Manufacturer Name)
 
 >- 全称 **"Spreadtrum"**
 >- 缩写 **"sprd"**
@@ -27,7 +27,7 @@ Sprdlinux社区版约定如下：
 全称仅在注释、描述、介绍中提及公司时使用。
 文件、变量、函数中只使用缩写，宏名按惯例使用大写 **“SPRD”**
 
-#### 平台名 (Platform Name)
+### 平台名 (Platform Name)
 
 我司芯片除ARM核部分，SoC架构基本相似，均源于shark.
 名称纷繁的原因多源于市场策略和通信制式的不同。而按SoC惯例，是以cpu为视角来划分。
@@ -36,20 +36,20 @@ Sprdlinux社区版约定如下：
 >- **shark64**: cortex-A53 64bit架构，原名tsharkl
 >- **whale**:  cortex-A53/A7 Big-LITTLE架构
 
-#### 芯片名 (Chip Name)
+### 芯片名 (Chip Name)
 
 >- **主力**芯片型号 **sc####**
 
 因我司芯片型号较为灵活，因此**引脚兼容**、**配置相同**的芯片统一用最初命名的型号代表，称之为该型号兼容。也就是说，没有重新流片的芯片，无论remark成什么型号，都使用最初的型号代表。
 比如： sc1234和sc1155仅仅因为销售策略而型号不同，因为sc1234最先使用，sc1155称之为sc1234 compatible，不再另行命名。
 
-#### 板名 (Board Name)
+### 板名 (Board Name)
 
 >- 手机型号**sp####xxx[-....]**
 
 如 sp7730gga；如果同一个型号又有区分，则在后部添加描述，如sp7731gga-openphone, sp7731gga-customer等。
 
-#### 目录名 (Directory Name)
+### 目录名 (Directory Name)
 
 以下相对于kernel源代码目录树根目录:
 
@@ -89,9 +89,9 @@ Sprdlinux社区版约定如下：
 - ARM32体系架构目录：arch/arm/**mach-sprd/**
 - 驱动目录： drivers/[ sub-systems ]/**sprd/**
 
-#### 文件名 (File Name)
+### 文件名 (File Name)
 
-##### **.dts/.dtsi文件**
+#### **.dts/.dtsi文件**
 基本格式:  公司名 + [ 平台名 | 芯片名 ] + [ 板名 ].[ dtsi | dts ]
  
 > 例如：
@@ -101,7 +101,7 @@ Sprdlinux社区版约定如下：
 **sprd-sc7730.dtsi** ：首先包含sprd-shark.dtsi中的内容，描述(override) sc7730这款芯片的差异，比如cp的配置资源等。
 **sprd-sp7730gga-openphone.dts**：代表基于上述芯片的最终手机成品，在包含上述2个文件的基础上，补充描述如内存配置，pinctrl-mux，端口使能，以及在板外设等。 
 
-##### .c/.h/.S文件
+#### .c/.h/.S文件
 
 基本格式:  [ 公司名 | 平台名 ] + 功能 + [ 芯片名 | 板名 ].[ c | h | S ]
 
@@ -125,7 +125,7 @@ Sprdlinux社区版约定如下：
 > pinctrl-sc7730.c   | sc7730-pinctrl.c
 > pinctrl-sc7731.c   | sc7713-pinctrl.c
 
-#### 函数名 (Function Name)
+### 函数名 (Function Name)
 
 - 函数名均由小写字母、下划线构成，禁止花体、驼峰体、大小写混排、以及匈牙利命名法。
 
@@ -135,19 +135,87 @@ Sprdlinux社区版约定如下：
 
 - 以下划线'__'开头的函数名仅在确有必要时使用。常见情况是用来实现对同一函数多种调用方式，比如实现缺省参数；或是表示和体系架构相关的底层实现，比如__raw_readl()。
 
-#### 变量名 (Variable Name)
+### 变量名 (Variable Name)
 
 - 变量名规则与函数命名规则相同，但变量名应普遍短于函数名。
 
 - 局部变量尽量使用一个单词达意。但同时尊重命名习惯，比如常用i,j命名for循环变量。
 
-#### 宏名 (Macro Name)
+### 宏名 (Macro Name)
 
-#### 作者名 (Author Name)
+- 通常使用全部大写字母和下划线构成，对函数的宏重命名使用小写。
+
+- 名称选取和函数一致，简洁易懂为宜。
+
+- Kconfig宏应联用大写的 **公司名 + [ 平台名 | 芯片名 | 板名 ]** 做区分。
+
+> 例1：公司所有平台共有 **ARCH_SPRD**，**SPRD_MEM_POOL**
+> 例2：某一平台特有 **ARCH_SPRD_SHARK**，**SPRD_SHARK_DMC_FREQ**
+> 例3：某一芯片特有 **ARCH_SPRD_SC7730**，**SOUND_SPRD_SC7730**
+> 例4：某型号手机或某类型板卡特有： **MACH_SPRD_SP7730GGA**，**MACH_SPRD_OPENPHONE** 
+
+- 寄存器相关的宏定义应使用与芯片spec描述一致的名称，便于检索。
+
+- 模块内部使用的宏，无需使用SPRD前缀，避免重复罗嗦。如串口驱动模块中对寄存器偏移量的宏定义。
+
+### 作者名 (Author Name)
 
 - 名在前，姓在后，首字母大写，中间空格分开。比如Orson Zhai，而非orson.zhai，OrsonZhai或zhai orson。
-- 原则上使用护照上姓名的汉语拼音，应避免使用中文，因为可能会在某些终端下显示乱码。
 
+- 原则上使用护照上姓名的汉语拼音，应避免使用中文，因为可能会在某些终端下显示为乱码。
+
+文件布局 ( Layout )
+-----
+
+### 硬件描述
+
+### 平台初始化
+
+### 驱动模块
+
+### 头文件
+
+### 固件
+
+DT描述 ( Device Tree ) 
+-----
+
+### 规则
+### 节点
+### 分层
+### override
+### compatible string
+### Interrupt controller
+### clock
+### power management
+
+子系统 ( Sub-system & Module )
+-----
+
+### 基本输出 ( stdout )
+### pinctrl
+### 时钟
+### 中断
+### 内存控制
+### DMA
+### 电源管理
+#### PSCI
+### Framebuffer
+### 按键和LED
+### 多媒体
+
+ARM64兼容
+-----
+
+### 初始化
+### DT
+### ABI
+
+工具 ( Tools )
+-----
+
+社区 ( Community )
+-----
 
 
 
