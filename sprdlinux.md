@@ -352,13 +352,309 @@ ARM64已经取消了这个目录，可以想见arm32之所以保留也是照顾�
 DT描述 ( Device Tree ) 
 -----
 
-### 规则
-### 节点
-### 分层
-### override
-### compatible string
+嵌入式系统 (Embedded System)在刚出世的时候，没人能预见到他们会象现在这么庞大和复杂。当时的系统功能简单到可以由一名普通工程师在1天内完全用汇编语言实现。
+而现在一片普通的ARM9 SoC就可能包含数十个外设IP。 因为是片内外设，且没有类似PnP的机制来自动侦测，所有的外设资源信息都需要在软件中描述。
+在DT机制出现之前，上述工作可以形容为一场灾难——数以千计的长宏和层层嵌套的头文件足以令人抓狂。
+DT则改观了这一切，他用类似Jason语言的形式，将SoC和板级外设表示为节点拓扑。易读，结构清晰、灵活。
+
+- 关于DT规则的详述，请参考官方文档：Power.org Standard for Embedded Power Architecture Platform Requirements (ePAPR)
+
+- 内部文档请参考：_Spreadtrum Device Tree_ <i class="icon-file"></i>[sprd_device_tree_updated_0924.doc] , written by Allen & Mark
+
+- Binding文档请参考：<i class="icon-folder"> '''{kernel_path}/Documentation/devicetree/bindings/'''
+
+一般性内容，本章不再赘述，仅针对一些具体现象和问题进行探讨。
+
+### 总线拓扑结构
+
+dts是对硬件的描述，有设备节点构成。其脉络一般按片内/片外总线拓扑展开。
+当前写法dev node都归在root下，如果芯片简单也不无不可，但我司芯片寄存器规划比较独特，同族芯片的继承关系各具风格，从维护角度应遵循惯例为宜。
+
+    /include/ "skeleton.dtsi"
+    
+    / {
+    	#address-cells = <1>;
+    	#size-cells = <1>;
+    
+      	soc {
+    		compatible = "simple-bus";  /* 声明simple-bus，公共代码会遍历节点并注册设备 */
+    		reg = <0x0 0x80000000>;  /* 声明地址范围，与手册memory map呼应，读者了然于心 */
+    		ranges;
+    
+    		ap_ahb: ahb@20000000 {   /* ahb较多，通过地址区分；利用label释义 */
+    			compatible = "simple-bus";
+    			reg = <0x20000000 0x1900000>;
+    			ranges;
+    
+    		}
+    		pub: memory-controller@30000000 {   /* memory-controller是保留名称，此节点为ddr控制器 */
+    			compatible = "sprd, shark-dmc";
+    			reg = <0x30000000 0xe0000>;  
+    		}
+    
+    		aon_apb: apb@40000000 {  /* apb有多个，通过地址分别，label释义 */
+    			compatible = "simple-bus";
+    			reg = <0x40000000 0x420000>;
+    			ranges;
+    
+			    /* 以下为aon_apb下的设备节点 */
+    
+    			syscnt: timer@40230000 {
+    				compatible  = "sprd,shark-syscnt";
+    				reg = <0x40230000 0x1000>;
+    				interrupts = <0 118 0x0>,
+    			};
+    
+    			aon_timer: timer@40050000 {
+    				compatible = "sprd,shark-timer";
+    				reg = <0x40050000 0x1000>;
+    				interrupts = <0 28 0x0>;
+    			};
+    
+    			timer0: timer@40220000 {
+    				compatible = "sprd,shark-timer";
+    				reg = <0x40220000 0x1000>;
+    				interrupts = <0 29 0x0>;
+    			};
+    
+    			timer1: timer@40320000 {
+    				compatible = "sprd,shark-timer";
+    				reg = <0x40320000 0x1000>;
+    				interrupts = <0 119 0x0>;
+    			};
+    
+    			timer2: timer@40330000 {
+    				compatible = "sprd,shark-timer";
+    				reg = <0x40330000 0x1000>;
+    				interrupts = <0 121 0x0>;
+    			};
+    		}
+    		
+    		gpu: apb@60000000 {     /* 注意寄存器地址按从小到大顺序排列，按芯片arch分层列出 */
+    			compatible = "simple-bus";
+    			reg = <0x60000000 0x200000>;
+    			ranges;
+    
+    		}
+    
+    		mm: ahb@60800000 {
+    			compatible = "simple-bus";
+    			reg = <0x60800000 0x700000>;
+    			ranges;
+    			
+    			csi: csi-controller {
+    				compatible = "sprd,shark-csi";
+    				reg = <0x60c00000 0x100000>;
+    			}
+    
+    		}
+    
+    		ap_apb: apb@70000000 {
+    			compatible = "simple-bus";
+    			reg = <0x70000000 0x10000000>;
+    			ranges;
+    
+			    /* 以下为0x70000000地址段设备 */
+			    
+    			uart0: serial@70000000 {
+    				compatible  = "sprd,shark-serial";
+    				interrupts = <0 2 0x0>;
+    				reg = <0x70000000 0x1000>;
+    				clocks = <&clock 60>;
+    			};
+    
+    			uart1: serial@70100000 {
+    				compatible  = "sprd,shark-serial";
+    				interrupts = <0 3 0x0>;
+    				reg = <0x70100000 0x1000>;
+    				clocks = <&clock 61>;
+    			};
+    
+    			uart2: serial@70200000 {
+    				compatible  = "sprd,shark-serial";
+    				interrupts = <0 4 0x0>;
+    				reg = <0x70200000 0x1000>;
+    				clocks = <&clock 62>;
+    			};
+    
+    			uart3: serial@70300000 {
+    				compatible  = "sprd,shark-serial";
+    				interrupts = <0 5 0x0>;
+    				reg = <0x70300000 0x1000>;
+    				clocks = <&clock 63>;
+    			};
+    
+    			i2c0: i2c@70500000 {
+    				compatible = "sprd,shark-i2c";
+    				interrupts = <0 11 0x0>;
+    				reg = <0x70500000 0x1000>;
+    				#address-cells = <1>;
+    				#size-cells = <0>;
+    			};
+    
+    			i2c1: i2c@70600000 {
+    				compatible = "sprd,shark-i2c";
+    				interrupts = <0 12 0x0>;
+    				reg = <0x70600000 0x1000>;
+    				#address-cells = <1>;
+    				#size-cells = <0>;
+    			};
+    
+    			i2c2: i2c@70700000 {
+    				compatible = "sprd,shark-i2c";
+    				interrupts = <0 13 0x0>;
+    				reg = <0x70700000 0x1000>;
+    				#address-cells = <1>;
+    				#size-cells = <0>;
+    			};
+    
+    			i2c3: i2c@70800000 {
+    				compatible  = "sprd,shark-i2c";
+    				interrupts = <0 14 0x0>;
+    				reg = <0x70800000 0x1000>;
+    				#address-cells = <1>;
+    				#size-cells = <0>;
+    			};
+    
+    			spi0: spi@70a00000 {
+    				compatible  = "sprd,shark-spi";
+    				interrupts = <0 7 0x0>;
+    				reg = <0x70a00000 0x1000>;
+    				clock-names = "clk_spi0";
+    			};
+    			spi1: spi@70b00000 {
+    				compatible  = "sprd,shark-spi";
+    				interrupts = <0 8 0x0>;
+    				reg = <0x70b00000 0x1000>;
+    				clock-names = "clk_spi1";
+    			};
+    			spi2: spi@70c00000 {
+    				compatible  = "sprd,shark-spi";
+    				interrupts = <0 9 0x0>;
+    				reg = <0x70c00000 0x1000>;
+    				clock-names = "clk_spi2";
+    			};
+    		}
+    
+    	}
+    };
+
+以上写法是笔者读完sc9630 Arch文档后，据其整理而成。可以看出，ic架构图中的模块布局，在dt中有直接对应，日后增删节点、芯片继承改写，都方便查找对比。
+
+### 命名
+
+- 节点命名
+1. 节点名用来表示此节点对应设备的功能，而非其他。用词应尽量通用，从大类。
+    > - Pro:  **memory-controller** { ... }
+    > - Cons:  
+    > -- **public** { ... }      设备功能描述不清，区域模块，可用做别名。
+    > -- **shark-dmc** { ... }   太过具体，更适合用在compatible string中。
+    
+      
+2.  ePAPR 2.2.2章节中，有列出常用设备节点名称，如果属于此列表中名称，应优先选用
+    > - Pro:  **serial@70000000** { ... }  serial为2.2.2节保留字
+    > - Con:  **uart@70000000** { ... }  uart没什么不好，但应尊重惯例
+
+3. @后缀地址应有意义，惯例和属性reg中的第一个地址相同
+    > - Pro:  **i2c@80** { reg = <**0x80**, 0x10>; ... }
+    > - Cons:  
+    > -- **i2c@1** { reg = <**0x80**, 0x10>; ... }
+    > -- **i2c_1** { ... }  可用于label，在alias中引用
+    
+4. 在Linux kernel中，如设备为厂商特有，应加厂商前缀，用逗号隔开，并单独撰写对应binding-Doc.
+    > - Pro:  **sprd,adi** { ... }
+    > - Cons:
+    > -- **adi** { ... }
+    > -- **sprd_adi** { ... }  
+
+- compatible string命名
+
+ 1. 多个compatible strings，从左至右，从最精确匹配到最宽松。
+    > 如:  compatile = "sprd,**sc7731**", "sprd,**shark**", "arm,cortex-a7";
+         
+2.  建议以芯片型号区分不同的ip。
+    > 如:  
+    > **compatile = "sprd,sc7731-uart";**
+    > **compatile = "sprd,sc9630-uart";**
+
+3. 尽量采用公共string，公共代码会自动处理。
+    > - Pro:  compatible = "**fixed-clock**";
+    > - Con:  compatible = "**sprd,fixed-clock**";    /* 自己注册处理，我司晶振有什么特别的吗？ */
+        
+### 文件分层
+
+- dt文件可以层层包含，尽可能复用描述
+> 如:  
+>  - shark.dtsi —— shark族片内基本节点
+>  - sc2723.dtsi —— A-die ip节点描述
+>  - sc7731.dtsi —— 芯片arm核描述，特有ip节点，和override属性
+>  - sp7731gga.dts —— 板级描述，包括片外节点，和override属性
+
+- 同一个节点路径，后面可override前面的属性。
+    
+        /* shark.dtsi 芯片文件 */
+	    / { 
+    	 cpus {
+    		uart0: serial@70000000 {
+    			clock-frequency = <40000000>;
+    		 };
+    	 };
+    	};
+    
+    -------	
+	     /* sp7731gea.dts** 板级文件 */
+	     
+	     /dts-v1/; 
+	     /include/ "shark.dtsi"
+	     &uart0 {
+	         clock-frequency = <26000000>;
+	     };
+
+最终编译的dtb中, clock-frequency是26000000。
+
+### 属性binding
+
+- 私有属性增加要谨慎，绝非必要，不应随意添加。属性应该是描述ip外围的资源配置情况，内部的资源应该是在驱动内部绑定的。
+
+        scproc: scproc@0x50800000 {
+            compatible = "sprd,scproc";
+            sprd,name = "cppmic";   /* 这是纯软件的概念，和硬件没有什么关系吧？ */
+            sprd,ctrl-reg = <0x114 0xff 0xb0 0xff>; /* 这个用宏定义在驱动程序中可以吗？ */
+            sprd,ctrl-mask = <0x01 0xf0000 0x100 0xf0000>; /* 用宏定义在驱动程序中？ */
+            sprd,iram-data = <0xe59f0000 0xe12fff10 0x0>;  /* 用 memory-region属性 */
+            reg = <0x50800000 0x8000>,
+            interrupts = <0 0x7c 0x0>; 
+        };
+
+比如模块名字等，静态配置应该用编译宏，可以在menuconfig中填写。
+动态配置，可以用module parameter，通过bootloader传过来。
+dt里的位置是bootargs { ... }。
+如此精简后，其实没有一个真正需要定制的私有属性。
+
+- 每增加一个属性，都要在配套binding文档中说明，并与代码同步提交。文档中不仅要讲述binding含义，还要写出用例。
+
+> 文档目录位置：{Kernel_src}/Documentation/devicetree/bindings/
+
+
+### 虚拟设备
+
+- 纯软件的虚拟设备不应写在dts中
+> 如: debug_node { .... }
+
+- 组合设备(composite device) 是社区可以接受的。
+
+> 如: battery_charger { ... }
+> 
+> 可能会涉及比如 adc, gpio, regulator, pwm多个节点。
+> 
+
+
+
+### aliaes的妙用
+
 ### Interrupt controller
 ### clock
+树状结构层层相扣
 ### power management
 
 子系统 ( Sub-system & Module )
